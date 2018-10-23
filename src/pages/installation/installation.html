@@ -16,7 +16,7 @@
             </h4>
             <p>
               {{installation.productName}}
-              <p>
+            </p>
                 <p>
                   <b> Purchase Date : </b> {{installation.productPurchaseDate | date:'mediumDate'}}
                 </p>
@@ -90,11 +90,11 @@
         <ion-row>
           <p col-6 class="border-right">
             <b>Waranty Start</b>
-            <br> {{installation.productWarrantyStart}}
+            <br> {{installation.productWarrantyStart | date:'mediumDate'}}
           </p>
           <p col-6>
             <b>Waranty End</b>
-            <br> {{installation.productWarrantyEnd}}
+            <br> {{installation.productWarrantyEnd | date:'mediumDate'}}
           </p>
         </ion-row>
       </ion-grid>

@@ -21,7 +21,7 @@
         </div>
         <div>
         <h6 no-margin>{{inc.productModelNumber}}</h6>
-        <p no-margin style="font-size: 13px;">{{inc.productName}}</p>
+        <p no-margin class="text-ellipsis" style="font-size: 13px;">{{inc.productName}}</p>
         <!-- <p no-margin><b>Priority : </b>{{inc.priority}}</p> -->
         <ion-badge *ngIf="inc.statusName">{{inc.statusName}}</ion-badge>
         <ion-badge *ngIf="!inc.statusName">Not Installed</ion-badge>

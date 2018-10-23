@@ -17,7 +17,7 @@
           {{incident.productName}}
         </p>
             <p>
-              <b> Purchase Date : </b> {{incident.productPurchaseDate}}
+              <b> Purchase Date : </b> {{incident.productPurchaseDate | date:'mediumDate'}}
             </p>
             <div [ngSwitch]="incident.statusId">
               <div *ngSwitchCase="4">
@@ -39,14 +39,16 @@
     <ion-card *ngSwitchCase="4">
       <div class="centerIcon">
         <ion-icon name="alarm" [style.color]="incident.statusColor" class="iconSize"></ion-icon>
-        <div [style.color]="incident.statusColor">Scheduled</div>
+        <div>
+        <b [style.color]="incident.statusColor">Scheduled</b>
       </div>
-      <div margin-bottom text-center>{{incident.lastScheduleDate | date:'short'}}</div>
+      </div>
+      <div margin-bottom text-center>{{incident.lastScheduleDate | date:'mediumDate'}}</div>
     </ion-card>
     <ion-card *ngSwitchCase="7">
       <div class="centerIcon">
         <ion-icon item-start name="hammer" [style.color]="incident.statusColor" class="iconSize"></ion-icon>
-        <div [style.color]="incident.statusColor">Fixed On</div>
+        <div [style.color]="incident.statusColor"><b>Fixed On</b></div>
       </div>
       <div margin-bottom text-center>{{incident.lastModifiedAt | date}}</div>
     </ion-card>
@@ -96,7 +98,7 @@
       <p >{{incident.title}}</p>
     </ion-item>
     <ion-item>
-      <small [style.color]="incident.statusColor">Description</small>
+      <small [style.color]="incident.statusColor"><b>Description</b></small>
       <p class="discription">{{incident.description}}</p>
     </ion-item>
     <ion-item>

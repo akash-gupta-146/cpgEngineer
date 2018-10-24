@@ -152,3 +152,8 @@ ion-card{
   color: color($colors,primary);
   border: 0.5px solid color($colors,primary);
 }
+.text-ellipsis{
+  white-space: nowrap; 
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

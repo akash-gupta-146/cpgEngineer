@@ -7,14 +7,9 @@
   </ion-navbar>
 
   <ion-toolbar color="primary">
-    <ion-segment [ngModel]="selectedSegment" (ionChange)="onSegmentChange($event.value)">
-      <ion-segment-button value="assigned">Assigned
-      </ion-segment-button>
-      <ion-segment-button value="scheduled">Scheduled
-      </ion-segment-button>
-      <ion-segment-button value="fixed">Fixed
-      </ion-segment-button>
-      <ion-segment-button value="notFixed">Not Fixed
+    <ion-segment [ngModel]="selectedStatusId">
+      <ion-segment-button *ngFor="let s of statusList" [value]="s.id" (tap)="onSegmentChange(s.id)">
+        {{s.name}}
       </ion-segment-button>
     </ion-segment>
   </ion-toolbar>

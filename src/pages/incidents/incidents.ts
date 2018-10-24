@@ -1,10 +1,13 @@
 import { Component } from '@angular/core';
-import { IonicPage, NavController, NavParams, ActionSheetController } from 'ionic-angular';
+import { IonicPage, NavController, NavParams, ActionSheetController, Refresher } from 'ionic-angular';
 import { IncidentService } from '../../providers/incidents.service';
 import { Incident } from '../../Classes/Models/incident.model';
 import { CustomService } from '../../providers/custom.service';
 
-
+interface Status {
+  id: number;
+  name: string;
+}
 
 @IonicPage()
 @Component({
@@ -13,18 +16,11 @@ import { CustomService } from '../../providers/custom.service';
 })
 export class IncidentsPage {
 
-  selectedSegment = 'assigned'; // possible values are: assigned, scheduled, fixed, not fixed
-  shownIncidents: Array<Incident>;// contains incidents of selected segment
-  incidents: { [key: string]: Array<Incident> } = {
-    all: [],
-    assigned: [],
-    scheduled: [],
-    fixed: [],
-    notFixed: []
-  };
+  selectedStatusId: number; 
+  shownIncidents: Array<Incident>;
 
-
-  currentPage = 1; // for pagination
+  statusList: Array<Status>;
+  allIncidents: { [key: string]: { list: Array<Incident>, currentPage: number } } = {};
 
   constructor(
     public navCtrl: NavController,
@@ -36,88 +32,84 @@ export class IncidentsPage {
   }
 
   ionViewDidLoad() {
-    this.getIncidentList();
+    this.getStatusList();
   }
 
-  getIncidentList(refresher?: any) {
+  getStatusList() {
+    this.customService.showLoader();
+    this.incidentService.getStatuses()
+      .subscribe((res: Array<Status>) => {
 
-    if (!refresher) { this.customService.showLoader(); }
-    this.incidentService.getIncidents(1)
-      .subscribe((res: Array<Incident>) => {
+        this.statusList = res;
 
-        this.incidents.all = res;
-        this.groupIncidents(res);
-        this.setIntialShownIncidents();
-        this.currentPage = 1;
-        refresher ? refresher.complete() : this.customService.hideLoader();
+        this.initializeAllIncidents(res);
+        // set selectedStatus
+        this.selectedStatusId = res[0].id;
+        this.getIncidentList(false, res[0].id);
+        this.customService.hideLoader();
       }, (err: any) => {
-
-        refresher ? refresher.complete() : this.customService.hideLoader();
+        this.customService.hideLoader();
         this.customService.showToast(err.msg);
       });
   }
 
-  setIntialShownIncidents(){
-    this.shownIncidents =  this.incidents[this.selectedSegment];
+  /**called for each status when fetching list first time*/
+  getIncidentList(showLoader: boolean, statusId: number) {
+
+    if (showLoader) { this.customService.showLoader(); }
+    this.incidentService.getIncidentsByStatus(this.allIncidents[statusId].currentPage, { statusId })
+      .subscribe((res: Array<Incident>) => {
+
+        this.allIncidents[statusId].list = res;
+        this.shownIncidents = this.allIncidents[statusId].list;
+        if (showLoader) { this.customService.hideLoader(); }
+      }, (err: any) => {
+        if (showLoader) { this.customService.hideLoader(); }
+        this.customService.showToast(err.msg);
+      });
   }
 
-  onSegmentChange(value: string) {
+  onSegmentChange(selectedStatusId: number) {
 
-    this.selectedSegment = value;
-    switch (this.selectedSegment) {
-      case 'assigned': this.shownIncidents = this.incidents.assigned;
-        break;
-      case 'scheduled': this.shownIncidents = this.incidents.scheduled;
-        break;
-      case 'fixed': this.shownIncidents = this.incidents.fixed;
-        break;
-      case 'notFixed': this.shownIncidents = this.incidents.notFixed;
-        break;
+    this.selectedStatusId = selectedStatusId;
+    if (this.allIncidents[this.selectedStatusId].list.length === 0) {
+      this.getIncidentList(true, this.selectedStatusId);
+    } else {
+      this.shownIncidents = this.allIncidents[this.selectedStatusId].list;
     }
-
   }
 
-  groupIncidents(list: Array<Incident>) {
-    
-    this.incidents.assigned = [];
-    this.incidents.scheduled = [];
-    this.incidents.fixed = [];
-    this.incidents.notFixed = [];
+  initializeAllIncidents(statusList: Status[]) {
 
-    list.forEach(inc => {
-
-      switch (inc.statusId) {
-        case 2:
-        case 9: // for onHold status
-          this.incidents.assigned.push(inc);
-          break;
-        case 4:
-          this.incidents.scheduled.push(inc);
-          break;
-        case 7:
-          this.incidents.fixed.push(inc);
-          break;
-        case 6:
-          this.incidents.notFixed.push(inc);
-          break;
-      }
+    statusList.forEach((status) => {
+      this.allIncidents[status.id] = { list: [], currentPage: 1 };
     });
-
   }
 
   doRefresh(refresher) {
 
-    this.getIncidentList(refresher);
+    this.incidentService.getIncidentsByStatus(1, { statusId: this.selectedStatusId })
+      .subscribe((res: Array<Incident>) => {
+
+        this.allIncidents[this.selectedStatusId].list = res;
+        this.shownIncidents = res;
+        this.allIncidents[this.selectedStatusId].currentPage = 1;
+        refresher.complete();
+      }, (err: any) => {
+        refresher.complete();
+        this.customService.showToast(err.msg);
+      });
   }
 
   doInfinite(infinite) {
 
-    this.incidentService.getIncidents(this.currentPage + 1)
-      .subscribe((res: Array<any>) => {
+    this.incidentService.getIncidentsByStatus(this.allIncidents[this.selectedStatusId].currentPage + 1, { statusId: this.selectedStatusId })
+      .subscribe((res: Array<Incident>) => {
+
         if (res.length) {
-          this.currentPage++;
-          this.incidents.all = this.incidents.all.concat(res);
-          this.groupIncidents(this.incidents.all);
+          this.allIncidents[this.selectedStatusId].list = this.allIncidents[this.selectedStatusId].list.concat(res);
+          this.shownIncidents = this.allIncidents[this.selectedStatusId].list;
+          this.allIncidents[this.selectedStatusId].currentPage++;
         }
         infinite.complete();
       }, (err: any) => {
@@ -128,51 +120,49 @@ export class IncidentsPage {
   }
 
 
-  openIncidentPage(inc:Incident) {
-    const clbk=()=>{
-      this.groupIncidents(this.incidents.all);
-this.setIntialShownIncidents();
-
+  openIncidentPage(inc: Incident) {
+    const clbk = () => {
+      // this clbk is not needed anymore, since data is coming already filtered from server
     }
-    this.navCtrl.push('IncidentPage', { 'incident': inc,'callback':clbk });
+    this.navCtrl.push('IncidentPage', { 'incident': inc, 'callback': clbk });
   }
 
   onSort() {
-    const actionSheet = this.actionSheetCtrl.create({
-      title: 'Sort By',
-      buttons: [
-        {
-          text: this.selectedSegment === 'fixed' ? 'Date & Time' : 'Distance',
-          handler: () => {
-            /** this event is being listened in complaint.ts, 1st parameter is for sort, 2nd is for filter*/
-            // this.onSelect.emit({ sortName: 'title', filter: null });
-          }
-        },
-        {
-          text: this.selectedSegment === 'fixed' ? 'Time to Install' : 'Average Time',
-          handler: () => {
-            //show further options of complaintCatgories
-            // this.onSelect.emit({ sortName: 'category', filter: null });
+    // const actionSheet = this.actionSheetCtrl.create({
+    //   title: 'Sort By',
+    //   buttons: [
+    //     {
+    //       text: this.selectedSegment === 'fixed' ? 'Date & Time' : 'Distance',
+    //       handler: () => {
+    //         /** this event is being listened in complaint.ts, 1st parameter is for sort, 2nd is for filter*/
+    //         // this.onSelect.emit({ sortName: 'title', filter: null });
+    //       }
+    //     },
+    //     {
+    //       text: this.selectedSegment === 'fixed' ? 'Time to Install' : 'Average Time',
+    //       handler: () => {
+    //         //show further options of complaintCatgories
+    //         // this.onSelect.emit({ sortName: 'category', filter: null });
 
-          }
-        },
-        {
-          text: 'Category',
-          handler: () => {
-            // this.onSelect.emit({ sortName: 'status', filter: null });
+    //       }
+    //     },
+    //     {
+    //       text: 'Category',
+    //       handler: () => {
+    //         // this.onSelect.emit({ sortName: 'status', filter: null });
 
-          }
-        },
-        {
-          text: 'Cancel',
-          role: 'cancel',
-          handler: () => {
-          }
-        }
-      ]
-    });
+    //       }
+    //     },
+    //     {
+    //       text: 'Cancel',
+    //       role: 'cancel',
+    //       handler: () => {
+    //       }
+    //     }
+    //   ]
+    // });
 
-    actionSheet.present();
+    // actionSheet.present();
   }
 
 }

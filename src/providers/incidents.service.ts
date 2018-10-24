@@ -21,6 +21,15 @@ export class IncidentService {
         return this.http.get(`/se/complaint/page/${pageNo}`);
     }
 
+    getIncidentsByStatus(pageNo:number,data:any){
+        return this.http.post(`/se/complaint/filter/page/${pageNo}`,data);
+
+    }
+
+    getStatuses(){
+        return this.http.get(`/se/status/engineer`);
+    }
+
     updateIncidentWithImg(updateInfo: any) {
 
     }   

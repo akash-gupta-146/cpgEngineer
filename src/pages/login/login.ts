@@ -26,12 +26,11 @@ export class LoginPage {
   ) {
   }
 
-
   ngOnInit() {
     this.menu.swipeEnable(false);
     this.loginForm = this.formBuilder.group({
-      contactNo: ['ajay0211', Validators.compose([Validators.required])],
-      password: ['abc123', Validators.required]
+      contactNo: ['nyaz@123', Validators.compose([Validators.required])],
+      password: ['Abc@123', Validators.required]
     });
   }
 
